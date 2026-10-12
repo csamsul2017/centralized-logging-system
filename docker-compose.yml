@@ -13,6 +13,19 @@ services:
     command: -config.file=/etc/loki/loki-config.yaml
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:latest
     env_file:
@@ -24,9 +37,11 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - loki
+      - prometheus
     restart: unless-stopped
 
 
 volumes:
   loki_data:
   grafana_data:
+  prometheus_data:
