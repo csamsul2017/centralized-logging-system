@@ -1,6 +1,7 @@
 services:
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7
+    container_name: loki
     deploy:
       resources:
         limits:
@@ -8,38 +9,58 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki:/etc/loki
+      - ./loki:/etc/loki:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - monitoring
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:3.13.4
+    container_name: prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
       - --web.enable-remote-write-receiver
+    networks:
+      - monitoring
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.2.4
+    container_name: grafana
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     env_file:
       - .env
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
     depends_on:
       - loki
       - prometheus
+    networks:
+      - monitoring
     restart: unless-stopped
 
+networks:
+  monitoring:
+    driver: bridge
 
 volumes:
   loki_data:
